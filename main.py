@@ -2,10 +2,7 @@ import streamlit as st
 from openai import OpenAI
 import os
 
-
-OPENAI_API_KEY = "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"
-
-client = OpenAI(api_key=OPENAI_API_KEY)
+client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
 # ------------------------
 # TTS FUNCTION (gTTS)
@@ -95,3 +92,4 @@ if st.button("Ask"):
         speak(answer, lang_code=selected_language_code)
     else:
         st.warning("Please type a question!")
+
