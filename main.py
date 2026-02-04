@@ -76,7 +76,8 @@ languages = {
     "mr": "Marathi",
     "gu": "Gujarati",
     "pa": "Punjabi",
-    "kn": "Kannada"
+    "kn": "Kannada",
+    "as": "Assamese"
 }
 
 selected_language_full = st.selectbox("Select Language", list(languages.values()))
@@ -93,5 +94,6 @@ if st.button("Ask"):
         speak(answer, lang_code=selected_language_code)
     else:
         st.warning("Please type a question!")
+
 
 
