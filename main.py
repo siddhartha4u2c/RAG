@@ -1,6 +1,7 @@
 import streamlit as st
 from openai import OpenAI
 import os
+from gtts import gTTS
 
 client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
@@ -92,4 +93,5 @@ if st.button("Ask"):
         speak(answer, lang_code=selected_language_code)
     else:
         st.warning("Please type a question!")
+
 
