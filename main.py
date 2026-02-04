@@ -62,22 +62,16 @@ def ask_chatbot(question, lang="en"):
 # ------------------------
 # STREAMLIT UI
 # ------------------------
-st.title("🌐 Multilingual Chatbot with Voice")
+st.title("🌐 Siddhartha's Multilingual Chatbot with Voice")
 st.write("Ask a question in English or any Indian language and hear the answer!")
 
 # Language selection
 languages = {
     "en": "English",
-    "hi": "Hindi",
-    "ta": "Tamil",
-    "te": "Telugu",
+    "hi": "Hindi",    
     "bn": "Bengali",
-    "ml": "Malayalam",
     "mr": "Marathi",
-    "gu": "Gujarati",
-    "pa": "Punjabi",
-    "kn": "Kannada",
-    "as": "Assamese"
+    "gu": "Gujarati"
 }
 
 selected_language_full = st.selectbox("Select Language", list(languages.values()))
@@ -94,6 +88,7 @@ if st.button("Ask"):
         speak(answer, lang_code=selected_language_code)
     else:
         st.warning("Please type a question!")
+
 
 
 
