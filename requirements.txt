@@ -4,5 +4,6 @@ numpy
 pyttsx3
 pandas
 gunicorn
+gtts
 
 
