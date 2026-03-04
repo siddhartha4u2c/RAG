@@ -8,6 +8,8 @@ import tempfile
 # PAGE CONFIG
 # ------------------------
 st.set_page_config(page_title="Multilingual Voice Chatbot")
+st.title("🌐 Siddhartha's Multilingual Voice Chatbot")
+st.write("🎤 Speak your question and hear the answer!")
 
 # ------------------------
 # OPENAI CLIENT
@@ -15,53 +17,14 @@ st.set_page_config(page_title="Multilingual Voice Chatbot")
 client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
 # ------------------------
-# TEXT TO SPEECH
+# SESSION STATE (IMPORTANT FOR RERUNS)
 # ------------------------
-def speak(text, lang_code="en"):
-    tts = gTTS(text=text, lang=lang_code)
-
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp:
-        tts.save(tmp.name)
-        tmp_path = tmp.name
-
-    with open(tmp_path, "rb") as audio_file:
-        st.audio(audio_file.read(), format="audio/mp3")
-
-    os.remove(tmp_path)
+if "messages" not in st.session_state:
+    st.session_state.messages = []
 
 # ------------------------
-# SPEECH TO TEXT
+# LANGUAGE OPTIONS
 # ------------------------
-def transcribe_audio(audio_file):
-    transcript = client.audio.transcriptions.create(
-        model="gpt-4o-mini-transcribe",
-        file=audio_file
-    )
-    return transcript.text
-
-# ------------------------
-# CHAT FUNCTION
-# ------------------------
-def ask_chatbot(question, language_name):
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[
-            {
-                "role": "system",
-                "content": f"You are a helpful assistant. Always reply in {language_name}."
-            },
-            {"role": "user", "content": question}
-        ]
-    )
-    return response.choices[0].message.content
-
-
-# ------------------------
-# UI
-# ------------------------
-st.title("🌐 Siddhartha's Multilingual Voice Chatbot")
-st.write("🎤 Speak your question and hear the answer!")
-
 languages = {
     "en": "English",
     "hi": "Hindi",
@@ -76,21 +39,109 @@ selected_language_code = [
     if name == selected_language_full
 ][0]
 
-# 🎤 BUILT-IN MIC INPUT (WORKS ON RENDER)
-audio_file = st.audio_input("Click to record your question")
+st.warning("🎤 Click the microphone, speak, then click again to STOP recording.")
+
+# ------------------------
+# TEXT TO SPEECH
+# ------------------------
+def speak(text, lang_code="en"):
+    try:
+        tts = gTTS(text=text, lang=lang_code)
+
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp:
+            tts.save(tmp.name)
+            tmp_path = tmp.name
+
+        with open(tmp_path, "rb") as audio_file:
+            st.audio(audio_file.read(), format="audio/mp3")
+
+        os.remove(tmp_path)
+
+    except Exception as e:
+        st.error(f"TTS Error: {e}")
+
+# ------------------------
+# SPEECH TO TEXT
+# ------------------------
+def transcribe_audio(audio_bytes):
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
+            tmp.write(audio_bytes.read())
+            tmp_path = tmp.name
+
+        with open(tmp_path, "rb") as f:
+            transcript = client.audio.transcriptions.create(
+                model="gpt-4o-mini-transcribe",
+                file=f
+            )
+
+        os.remove(tmp_path)
+        return transcript.text
+
+    except Exception as e:
+        st.error(f"Transcription Error: {e}")
+        return None
+
+# ------------------------
+# CHAT FUNCTION
+# ------------------------
+def ask_chatbot(question, language_name):
+    try:
+        messages = [
+            {
+                "role": "system",
+                "content": f"You are a helpful assistant. Always reply in {language_name}."
+            }
+        ] + st.session_state.messages + [
+            {"role": "user", "content": question}
+        ]
+
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=messages
+        )
+
+        return response.choices[0].message.content
+
+    except Exception as e:
+        st.error(f"Chat Error: {e}")
+        return None
+
+# ------------------------
+# DISPLAY CHAT HISTORY
+# ------------------------
+for msg in st.session_state.messages:
+    with st.chat_message(msg["role"]):
+        st.markdown(msg["content"])
+
+# ------------------------
+# AUDIO INPUT
+# ------------------------
+audio_file = st.audio_input("Record your question")
 
 if audio_file is not None:
 
     st.info("Processing... Please wait.")
 
-    # Convert speech to text
     query = transcribe_audio(audio_file)
-    st.write(f"📝 You said: {query}")
 
-    # Get answer
-    answer = ask_chatbot(query, selected_language_full)
+    if query:
 
-    st.markdown(f"**🤖 Answer:** {answer}")
+        # Show user message
+        st.session_state.messages.append({"role": "user", "content": query})
+        with st.chat_message("user"):
+            st.markdown(query)
 
-    # Speak answer
-    speak(answer, lang_code=selected_language_code)
+        # Get assistant response
+        answer = ask_chatbot(query, selected_language_full)
+
+        if answer:
+            st.session_state.messages.append(
+                {"role": "assistant", "content": answer}
+            )
+
+            with st.chat_message("assistant"):
+                st.markdown(answer)
+
+            # Speak response
+            speak(answer, selected_language_code)
