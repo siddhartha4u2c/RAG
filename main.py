@@ -2,7 +2,6 @@ import streamlit as st
 from openai import OpenAI
 import os
 from gtts import gTTS
-from audiorecorder import audiorecorder
 import tempfile
 
 # ------------------------
@@ -20,7 +19,7 @@ client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 # ------------------------
 def speak(text, lang_code="en"):
     tts = gTTS(text=text, lang=lang_code)
-    
+
     with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp:
         tts.save(tmp.name)
         tmp_path = tmp.name
@@ -33,18 +32,11 @@ def speak(text, lang_code="en"):
 # ------------------------
 # SPEECH TO TEXT
 # ------------------------
-def transcribe_audio(audio_bytes):
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
-        tmp.write(audio_bytes)
-        tmp_path = tmp.name
-
-    with open(tmp_path, "rb") as audio_file:
-        transcript = client.audio.transcriptions.create(
-            model="gpt-4o-mini-transcribe",
-            file=audio_file
-        )
-
-    os.remove(tmp_path)
+def transcribe_audio(audio_file):
+    transcript = client.audio.transcriptions.create(
+        model="gpt-4o-mini-transcribe",
+        file=audio_file
+    )
     return transcript.text
 
 # ------------------------
@@ -70,7 +62,6 @@ def ask_chatbot(question, language_name):
 st.title("🌐 Siddhartha's Multilingual Voice Chatbot")
 st.write("🎤 Speak your question and hear the answer!")
 
-# Language selection
 languages = {
     "en": "English",
     "hi": "Hindi",
@@ -81,32 +72,25 @@ languages = {
 
 selected_language_full = st.selectbox("Select Language", list(languages.values()))
 selected_language_code = [
-    code for code, name in languages.items() 
+    code for code, name in languages.items()
     if name == selected_language_full
 ][0]
 
-# Voice recorder (VISIBLE IN UI)
-st.write("🎤 Click below to record your question:")
-audio = audiorecorder("Click to record", "Recording... Click to stop")
+# 🎤 BUILT-IN MIC INPUT (WORKS ON RENDER)
+audio_file = st.audio_input("Click to record your question")
 
-# Ask button
-if st.button("Ask"):
+if audio_file is not None:
 
-    if len(audio) > 0:
-        st.info("Processing... Please wait.")
+    st.info("Processing... Please wait.")
 
-        # Convert speech to text
-        query = transcribe_audio(audio.export().read())
-        st.write(f"📝 You said: {query}")
+    # Convert speech to text
+    query = transcribe_audio(audio_file)
+    st.write(f"📝 You said: {query}")
 
-        # Get answer
-        answer = ask_chatbot(query, selected_language_full)
+    # Get answer
+    answer = ask_chatbot(query, selected_language_full)
 
-        # Show answer
-        st.markdown(f"**🤖 Answer:** {answer}")
+    st.markdown(f"**🤖 Answer:** {answer}")
 
-        # Speak answer
-        speak(answer, lang_code=selected_language_code)
-
-    else:
-        st.warning("Please record a question first!")
+    # Speak answer
+    speak(answer, lang_code=selected_language_code)
