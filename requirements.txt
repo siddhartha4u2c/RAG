@@ -1,9 +1,9 @@
 streamlit
 openai
-numpy
-pyttsx3
-pandas
-gunicorn
 gtts
+streamlit-audiorecorder
+gunicorn
+numpy
+pandas
 
 
